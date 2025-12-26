@@ -2,20 +2,26 @@ import discord
 from discord.ext import commands
 import yt_dlp
 import os
+import json
 
 # ================== CONFIG ==================
 
 TOKEN = os.getenv("TOKEN")
-VOICE_CHANNEL_ID = 1399640417535787079 
-VOICE_CHANNEL_ID = 1452746895691878492
-VOICE_CHANNEL_ID = 1377605445253857482
-VOICE_CHANNEL_ID = 1398924017242472458# Fixed VC
 
-# 🔐 WHITELISTS (START EMPTY / SAFE)
+# 🔊 MULTI FIXED VOICE CHANNELS
+VOICE_CHANNEL_IDS = [
+    1399640417535787079,
+    1452746895691878492,
+    1377605445253857482,
+    1398924017242472458
+]
+
+OWNER_ID = 819464202728505364  # 👑 Tumhari Discord User ID
+
 WHITELIST_ROLE_IDS = []
 WHITELIST_USER_IDS = []
 
-OWNER_ID = 819464202728505364  # 🔴 Apna Discord ID yahan daalo
+WHITELIST_FILE = "whitelist.json"
 
 # ============================================
 
@@ -25,6 +31,23 @@ intents.voice_states = True
 intents.guilds = True
 
 bot = commands.Bot(command_prefix="~", intents=intents)
+
+# ================== WHITELIST SAVE / LOAD ==================
+
+def save_whitelist():
+    with open(WHITELIST_FILE, "w") as f:
+        json.dump({
+            "roles": WHITELIST_ROLE_IDS,
+            "users": WHITELIST_USER_IDS
+        }, f)
+
+def load_whitelist():
+    global WHITELIST_ROLE_IDS, WHITELIST_USER_IDS
+    if os.path.exists(WHITELIST_FILE):
+        with open(WHITELIST_FILE, "r") as f:
+            data = json.load(f)
+            WHITELIST_ROLE_IDS = data.get("roles", [])
+            WHITELIST_USER_IDS = data.get("users", [])
 
 # ================== SECURITY CHECK ==================
 
@@ -46,14 +69,16 @@ def is_whitelisted(ctx):
 @bot.event
 async def on_ready():
     print(f"✅ Music Bot Online: {bot.user}")
+    load_whitelist()
 
-    channel = bot.get_channel(VOICE_CHANNEL_ID)
-    if channel:
-        try:
-            await channel.connect()
-            print("🔒 Joined fixed voice channel")
-        except:
-            print("⚠️ Already connected")
+    for vc_id in VOICE_CHANNEL_IDS:
+        channel = bot.get_channel(vc_id)
+        if channel:
+            try:
+                await channel.connect()
+                print(f"🔒 Joined VC: {vc_id}")
+            except:
+                pass
 
 # ================== PLAY COMMAND ==================
 
@@ -104,7 +129,7 @@ async def play(ctx, *, search):
         await ctx.send("❌ Song play nahi ho paya")
         print(e)
 
-# ================== WHITELIST COMMANDS ==================
+# ================== WHITELIST COMMANDS (OWNER ONLY) ==================
 
 @bot.command()
 async def wl_add_role(ctx, role: discord.Role):
@@ -113,6 +138,7 @@ async def wl_add_role(ctx, role: discord.Role):
 
     if role.id not in WHITELIST_ROLE_IDS:
         WHITELIST_ROLE_IDS.append(role.id)
+        save_whitelist()
         await ctx.send(f"✅ Role whitelisted: **{role.name}**")
     else:
         await ctx.send("⚠️ Role already whitelisted")
@@ -124,6 +150,7 @@ async def wl_remove_role(ctx, role: discord.Role):
 
     if role.id in WHITELIST_ROLE_IDS:
         WHITELIST_ROLE_IDS.remove(role.id)
+        save_whitelist()
         await ctx.send(f"❌ Role removed: **{role.name}**")
     else:
         await ctx.send("⚠️ Role whitelist me nahi hai")
@@ -135,6 +162,7 @@ async def wl_add_user(ctx, user: discord.Member):
 
     if user.id not in WHITELIST_USER_IDS:
         WHITELIST_USER_IDS.append(user.id)
+        save_whitelist()
         await ctx.send(f"✅ User whitelisted: **{user}**")
     else:
         await ctx.send("⚠️ User already whitelisted")
@@ -146,6 +174,7 @@ async def wl_remove_user(ctx, user: discord.Member):
 
     if user.id in WHITELIST_USER_IDS:
         WHITELIST_USER_IDS.remove(user.id)
+        save_whitelist()
         await ctx.send(f"❌ User removed: **{user}**")
     else:
         await ctx.send("⚠️ User whitelist me nahi hai")
@@ -164,7 +193,7 @@ async def wl_list(ctx):
         f"**Users:** {', '.join(users) if users else 'None'}"
     )
 
-# ================== STOP LOCK ==================
+# ================== STOP (LOCKED) ==================
 
 @bot.command()
 @commands.has_permissions(administrator=True)
