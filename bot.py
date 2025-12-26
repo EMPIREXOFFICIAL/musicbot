@@ -15,7 +15,7 @@ VOICE_CHANNEL_ID = 1398924017242472458# Fixed VC
 WHITELIST_ROLE_IDS = []
 WHITELIST_USER_IDS = []
 
-OWNER_ID = exc_krish  # 🔴 Apna Discord ID yahan daalo
+OWNER_ID = 819464202728505364  # 🔴 Apna Discord ID yahan daalo
 
 # ============================================
 
